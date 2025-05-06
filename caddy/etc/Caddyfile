@@ -1,0 +1,29 @@
+{
+	email fry@fry69.dev
+	on_demand_tls {
+		ask http://localhost:3000/tls-check
+	}
+}
+
+*.altq.net, altq.net {
+	tls {
+		on_demand
+	}
+
+	# Route these paths requests to the PDS service
+	# /xrpc/
+	# /oauth/
+	# /.well-known/
+	# /robots.txt
+	@pds {
+		path /xrpc/*
+		path /oauth/*
+		path /.well-known/*
+		path /robots.txt
+	}
+	reverse_proxy @pds http://localhost:3000
+
+	# Serve your custom website for all other requests  
+	root * /srv/webroot
+	file_server
+}
