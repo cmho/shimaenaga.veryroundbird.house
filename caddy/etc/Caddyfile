@@ -12,11 +12,13 @@
 
 	# Route these paths requests to the PDS service
 	# /xrpc/
+	# /@atproto/
 	# /oauth/
 	# /.well-known/
 	# /robots.txt
 	@pds {
 		path /xrpc/*
+		path /@atproto/*
 		path /oauth/*
 		path /.well-known/*
 		path /robots.txt
