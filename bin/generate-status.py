@@ -240,6 +240,10 @@ def main():
         size = get_directory_usage(block_dir) if os.path.isdir(block_dir) else 0
         usage_list.append((did, rec_count, blob_count, size))
 
+    # Sort usage_list by record count in descending order
+    # Convert string 'Error' to -1 for sorting purposes
+    usage_list.sort(key=lambda x: -1 if x[1] == "Error" else int(x[1]), reverse=True)
+
     # Get the template
     template = get_template()
 
