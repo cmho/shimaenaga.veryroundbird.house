@@ -3,6 +3,7 @@
 """
 Generate a simple, attractive HTML status page showing:
 - System load, CPU %, root-disk usage, network usage
+- PDS version retrieved from health endpoint
 - Number of accounts and each account's DID
 - Per-account store record/blob counts (from read-only SQLite)
 - Disk usage for each blocks directory by DID
@@ -11,6 +12,7 @@ Requires:
 - Python 3.6+
 - psutil (`pip install psutil`)
 - jinja2 (`pip install jinja2`)
+- requests (`pip install requests`)
 
 Usage:
 ./generate_status.py --pds-path /pds --output status.html
@@ -20,6 +22,7 @@ import os
 import argparse
 import sqlite3
 import psutil  # type: ignore
+import requests  # type: ignore
 from datetime import datetime, timedelta
 from jinja2 import Environment  # type: ignore
 
@@ -56,6 +59,17 @@ def get_system_metrics():
         "net_recv": net_recv,
         "uptime": str(timedelta(seconds=int(uptime.total_seconds()))),
     }
+
+
+def get_pds_version(host="localhost", port=3000):
+    """Get the PDS version from the health endpoint."""
+    try:
+        response = requests.get(f"http://{host}:{port}/xrpc/_health", timeout=5)
+        if response.status_code == 200:
+            return response.json().get("version", "Unknown")
+    except (requests.RequestException, ValueError):
+        pass
+    return "Unable to retrieve"
 
 
 def get_account_data(pds_path):
@@ -162,7 +176,7 @@ def get_template():
         </table>
 
         <h2>Accounts in {{ pds_path }}</h2>
-        <p>Total accounts: {{ total_accounts }}</p>
+        <p>Total accounts: {{ total_accounts }} (PDS Version: {{ pds_version }})</p>
         <table class="table table-dark table-striped table-bordered">
             <thead>
                 <tr>
@@ -203,6 +217,12 @@ def main():
     )
     parser.add_argument("--pds-path", default="/pds", help="Root path for PDS data")
     parser.add_argument("--output", default="status.html", help="Output HTML filename")
+    parser.add_argument(
+        "--pds-host", default="localhost", help="PDS host for version check"
+    )
+    parser.add_argument(
+        "--pds-port", default=3000, type=int, help="PDS port for version check"
+    )
     args = parser.parse_args()
 
     # Gather all data
@@ -229,6 +249,9 @@ def main():
     if timestamp.endswith(" "):
         timestamp = timestamp.strip() + " UTC"
 
+    # Get PDS version
+    pds_version = get_pds_version(args.pds_host, args.pds_port)
+
     # Render the template with our data
     rendered_html = template.render(
         metrics=metrics,
@@ -237,6 +260,7 @@ def main():
         usage_list=usage_list,
         pds_path=args.pds_path,
         human_size=human_readable_size,
+        pds_version=pds_version,
     )
 
     # Write output to file
