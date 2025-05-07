@@ -21,7 +21,7 @@ import argparse
 import sqlite3
 import psutil  # type: ignore
 from datetime import datetime, timedelta
-from jinja2 import Environment, FileSystemLoader, select_autoescape  # type: ignore
+from jinja2 import Environment  # type: ignore
 
 
 def human_readable_size(size, decimal_places=1):
@@ -118,8 +118,8 @@ def get_directory_usage(path):
     return total
 
 
-def create_template_env():
-    """Create a Jinja2 template environment with the template string."""
+def get_template():
+    """Create and return a Jinja2 template for the status page."""
     template_str = """
 <!DOCTYPE html>
 <html lang="en">
@@ -187,18 +187,14 @@ def create_template_env():
 </body>
 </html>
 """
-    env = Environment(
-        loader=FileSystemLoader(os.path.dirname(os.path.abspath(__file__))),
-        autoescape=select_autoescape(["html", "xml"]),
-    )
+    # Create an environment with autoescape enabled
+    env = Environment(autoescape=True)
 
-    # Add the template string directly to the environment with a name
-    env.from_string = template_str
-
-    # Register the human_readable_size function for templates
+    # Register the human_readable_size function as a filter for templates
     env.filters["human_size"] = human_readable_size
 
-    return env
+    # Create and return the template from the string
+    return env.from_string(template_str)
 
 
 def main():
@@ -224,17 +220,19 @@ def main():
         size = get_directory_usage(block_dir) if os.path.isdir(block_dir) else 0
         usage_list.append((did, rec_count, blob_count, size))
 
-    # Setup Jinja2 environment and render template
-    env = create_template_env()
-    template = env.from_string
+    # Get the template
+    template = get_template()
 
-    # Create a template from the string
-    jinja_template = Environment().from_string(template)
+    # Get timestamp with timezone
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S %Z")
+    # If timezone is empty, assume UTC
+    if timestamp.endswith(" "):
+        timestamp = timestamp.strip() + " UTC"
 
     # Render the template with our data
-    rendered_html = jinja_template.render(
+    rendered_html = template.render(
         metrics=metrics,
-        generated=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        generated=timestamp,
         total_accounts=total_accounts,
         usage_list=usage_list,
         pds_path=args.pds_path,
