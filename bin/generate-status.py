@@ -1,4 +1,13 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.12"
+# dependencies = [
+#   "psutil",
+#   "jinija2",
+#   "requests"
+# ]
+# ///
+
 
 """
 Generate a simple, attractive HTML status page showing:
@@ -9,10 +18,10 @@ Generate a simple, attractive HTML status page showing:
 - Disk usage for each blocks directory by DID
 
 Requires:
-- Python 3.6+
-- psutil (`pip install psutil`)
-- jinja2 (`pip install jinja2`)
-- requests (`pip install requests`)
+- Python 3.6+ (3.12+ recommended)
+- psutil
+- jinja2
+- requests
 
 Usage:
 ./generate_status.py --pds-path /pds --output status.html
@@ -21,10 +30,10 @@ Usage:
 import os
 import argparse
 import sqlite3
-import psutil  # type: ignore
-import requests  # type: ignore
+import psutil
+import requests
 from datetime import datetime, timedelta
-from jinja2 import Environment  # type: ignore
+from jinja2 import Environment
 
 
 def human_readable_size(size, decimal_places=1):
