@@ -24,7 +24,7 @@ Requires:
 - requests
 
 Usage:
-./generate_status.py --pds-path /pds --output status.html
+./generate_status.py --pds-config /pds/pds.env --output status.html
 """
 
 import os
@@ -34,6 +34,25 @@ import psutil
 import requests
 from datetime import datetime, timedelta
 from jinja2 import Environment
+
+
+def parse_env_file(file_path):
+    env_vars = {}
+
+    with open(file_path, "r") as file:
+        for line in file:
+            line = line.strip()
+            # Skip blank lines and comments
+            if not line or line.startswith("#"):
+                continue
+
+            if "=" in line:
+                key, value = line.split("=", 1)
+                key = key.strip()
+                value = value.strip().strip('"').strip("'")
+                env_vars[key] = value
+
+    return env_vars
 
 
 def human_readable_size(size, decimal_places=1):
@@ -224,7 +243,9 @@ def main():
     parser = argparse.ArgumentParser(
         description="Generate a server status HTML report."
     )
-    parser.add_argument("--pds-path", default="/pds", help="Root path for PDS data")
+    parser.add_argument(
+        "--pds-config", help="Path to PDS configuration file (pds.env)", default=None
+    )
     parser.add_argument("--output", default="status.html", help="Output HTML filename")
     parser.add_argument(
         "--pds-host", default="localhost", help="PDS host for version check"
@@ -234,18 +255,27 @@ def main():
     )
     args = parser.parse_args()
 
+    # Parse PDS configuration if provided
+    if args.pds_config:
+        _config = parse_env_file(args.pds_config)
+        pds_data_directory = _config["PDS_DATA_DIRECTORY"]
+        pds_blobstore_disk_location = _config["PDS_BLOBSTORE_DISK_LOCATION"]
+    else:
+        pds_data_directory = "/pds"
+        pds_blobstore_disk_location = os.path.join(args.pds_path, "blocks")
+
     # Gather all data
     metrics = get_system_metrics()
-    total_accounts, dids = get_account_data(args.pds_path)
+    total_accounts, dids = get_account_data(pds_data_directory)
     usage_list = []
 
     for did in dids:
         try:
-            rec_count, blob_count = get_store_data(args.pds_path, did)
+            rec_count, blob_count = get_store_data(pds_data_directory, did)
         except Exception:
             rec_count, blob_count = "Error", "Error"
 
-        block_dir = os.path.join(args.pds_path, "blocks", did)
+        block_dir = os.path.join(pds_blobstore_disk_location, did)
         size = get_directory_usage(block_dir) if os.path.isdir(block_dir) else 0
         usage_list.append((did, rec_count, blob_count, size))
 
@@ -271,7 +301,7 @@ def main():
         generated=timestamp,
         total_accounts=total_accounts,
         usage_list=usage_list,
-        pds_path=args.pds_path,
+        pds_path=pds_data_directory,
         human_size=human_readable_size,
         pds_version=pds_version,
     )

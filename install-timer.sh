@@ -19,7 +19,7 @@ After=network.target
 
 [Service]
 Type=oneshot
-ExecStart=/usr/bin/env python3 $SCRIPT_PATH --pds-path /pds --output $OUTPUT_PATH
+ExecStart=/usr/bin/env python3 $SCRIPT_PATH --pds-config /pds/pds.env --output $OUTPUT_PATH
 User=root
 EOF
 
