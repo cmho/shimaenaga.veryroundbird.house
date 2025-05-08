@@ -109,7 +109,7 @@ class BlueskyCommentsSection extends HTMLElement {
       .split("/")
       .pop()}" target="_blank" rel="noopener noreferrer">
         Reply on Bluesky</a>
-        to join the conversation.
+        to leave a comment.
       </p>
       <div id="comments"></div>
       <button id="show-more">
