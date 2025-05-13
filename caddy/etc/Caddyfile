@@ -16,12 +16,14 @@
 	# /oauth/
 	# /.well-known/
 	# /robots.txt
+	# /account
 	@pds {
 		path /xrpc/*
 		path /@atproto/*
 		path /oauth/*
 		path /.well-known/*
 		path /robots.txt
+		path /account/*
 	}
 	reverse_proxy @pds http://localhost:3000
 
