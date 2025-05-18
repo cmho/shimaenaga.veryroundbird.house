@@ -64,16 +64,28 @@ def human_readable_size(size, decimal_places=1):
     return f"{size:.{decimal_places}f} PB"
 
 
-def get_system_metrics():
-    """Gather system load, CPU usage, root-disk stats, and network usage."""
+def get_system_metrics(pds_path="/pds"):
+    """Gather system load, CPU usage, /pds-disk stats, memory, kernel, and network usage."""
     load1, load5, load15 = os.getloadavg()
     cpu_percent = psutil.cpu_percent(interval=1)
-    usage = psutil.disk_usage("/")
+    # Use /pds (or provided path) for disk usage
+    usage = psutil.disk_usage(pds_path)
     net = psutil.net_io_counters(pernic=True).get("eth0")
     net_sent = net.bytes_sent if net else 0
     net_recv = net.bytes_recv if net else 0
     uptime_seconds = int(psutil.boot_time())
     uptime = datetime.now() - datetime.fromtimestamp(uptime_seconds)
+    # Memory info
+    mem = psutil.virtual_memory()
+    mem_total = mem.total
+    mem_used = mem.total - mem.available
+    mem_free = mem.available
+    # Kernel version
+    try:
+        kernel_version = os.uname().release
+    except AttributeError:
+        import platform
+        kernel_version = platform.uname().release
 
     return {
         "load1": load1,
@@ -82,10 +94,15 @@ def get_system_metrics():
         "cpu_percent": cpu_percent,
         "disk_total": usage.total,
         "disk_used": usage.used,
+        "disk_free": usage.free,
         "disk_percent": usage.percent,
         "net_sent": net_sent,
         "net_recv": net_recv,
         "uptime": str(timedelta(seconds=int(uptime.total_seconds()))),
+        "mem_total": mem_total,
+        "mem_used": mem_used,
+        "mem_free": mem_free,
+        "kernel_version": kernel_version,
     }
 
 
@@ -179,7 +196,7 @@ def get_template():
 <body class="bg-dark text-light">
     <div class="container">
         <h1 class="my-4">Server Status</h1>
-        <p>Report generated: {{ generated }} (uptime: {{ metrics.uptime }})</p>
+        <p>Report generated: {{ generated }} (uptime: {{ metrics.uptime }}, kernel: {{ metrics.kernel_version }})</p>
 
         <h2>System Metrics</h2>
         <table class="table table-dark table-bordered">
@@ -188,9 +205,12 @@ def get_template():
                 <th>Load (5m)</th>
                 <th>Load (15m)</th>
                 <th>CPU %</th>
-                <th>Disk (/)</th>
+                <th>Disk Used (/pds)</th>
+                <th>Disk Free (/pds)</th>
                 <th>Net Sent</th>
                 <th>Net Received</th>
+                <th>Mem Used</th>
+                <th>Mem Free</th>
             </tr>
             <tr>
                 <td>{{ "%.2f"|format(metrics.load1) }}</td>
@@ -198,8 +218,11 @@ def get_template():
                 <td>{{ "%.2f"|format(metrics.load15) }}</td>
                 <td>{{ "%.1f"|format(metrics.cpu_percent) }}%</td>
                 <td>{{ human_size(metrics.disk_used) }} / {{ human_size(metrics.disk_total) }} ({{ metrics.disk_percent }}%)</td>
+                <td>{{ human_size(metrics.disk_free) }}</td>
                 <td>{{ human_size(metrics.net_sent) }}</td>
                 <td>{{ human_size(metrics.net_recv) }}</td>
+                <td>{{ human_size(metrics.mem_used) }} / {{ human_size(metrics.mem_total) }}</td>
+                <td>{{ human_size(metrics.mem_free) }}</td>
             </tr>
         </table>
 
@@ -265,7 +288,7 @@ def main():
         pds_blobstore_disk_location = os.path.join(args.pds_path, "blocks")
 
     # Gather all data
-    metrics = get_system_metrics()
+    metrics = get_system_metrics(pds_data_directory)
     total_accounts, dids = get_account_data(pds_data_directory)
     usage_list = []
 
