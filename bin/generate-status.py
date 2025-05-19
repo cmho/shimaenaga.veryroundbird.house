@@ -69,7 +69,7 @@ def get_system_metrics(pds_path="/pds"):
     load1, load5, load15 = os.getloadavg()
     cpu_percent = psutil.cpu_percent(interval=1)
     # Use /pds (or provided path) for disk usage
-    usage = psutil.disk_usage(pds_path)
+    usage = psutil.disk_usage("/")
     net = psutil.net_io_counters(pernic=True).get("eth0")
     net_sent = net.bytes_sent if net else 0
     net_recv = net.bytes_recv if net else 0
@@ -93,7 +93,7 @@ def get_system_metrics(pds_path="/pds"):
         "load15": load15,
         "cpu_percent": cpu_percent,
         "disk_total": usage.total,
-        "disk_used": usage.used,
+        "disk_used": get_directory_usage(pds_path),
         "disk_free": usage.free,
         "disk_percent": usage.percent,
         "net_sent": net_sent,
@@ -201,28 +201,20 @@ def get_template():
         <h2>System Metrics</h2>
         <table class="table table-dark table-bordered">
             <tr>
-                <th>Load (1m)</th>
-                <th>Load (5m)</th>
-                <th>Load (15m)</th>
+                <th>Load (1m/5m/15m)</th>
                 <th>CPU %</th>
+                <th>Mem Used / Total</th>
+                <th>Net Sent / Received</th>
                 <th>Disk Used (/pds)</th>
-                <th>Disk Free (/pds)</th>
-                <th>Net Sent</th>
-                <th>Net Received</th>
-                <th>Mem Used</th>
-                <th>Mem Free</th>
+                <th>Disk Free</th>
             </tr>
             <tr>
-                <td>{{ "%.2f"|format(metrics.load1) }}</td>
-                <td>{{ "%.2f"|format(metrics.load5) }}</td>
-                <td>{{ "%.2f"|format(metrics.load15) }}</td>
+                <td>{{ "%.2f"|format(metrics.load1) }} / {{ "%.2f"|format(metrics.load5) }} / {{ "%.2f"|format(metrics.load15) }}</td>
                 <td>{{ "%.1f"|format(metrics.cpu_percent) }}%</td>
-                <td>{{ human_size(metrics.disk_used) }} / {{ human_size(metrics.disk_total) }} ({{ metrics.disk_percent }}%)</td>
-                <td>{{ human_size(metrics.disk_free) }}</td>
-                <td>{{ human_size(metrics.net_sent) }}</td>
-                <td>{{ human_size(metrics.net_recv) }}</td>
                 <td>{{ human_size(metrics.mem_used) }} / {{ human_size(metrics.mem_total) }}</td>
-                <td>{{ human_size(metrics.mem_free) }}</td>
+                <td>{{ human_size(metrics.net_sent) }} / {{ human_size(metrics.net_recv) }}</td>
+                <td>{{ human_size(metrics.disk_used) }}</td>
+                <td>{{ human_size(metrics.disk_free) }}</td>
             </tr>
         </table>
 
