@@ -5,7 +5,7 @@
 	}
 }
 
-*.altq.net, altq.net {
+*.shimaenaga.veryroundbird.house, shimaenaga.veryroundbird.house {
 	tls {
 		on_demand
 	}
