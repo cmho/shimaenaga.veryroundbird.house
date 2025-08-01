@@ -1,5 +1,5 @@
 {
-	email fry@fry69.dev
+	email carly@veryroundbird.house
 	on_demand_tls {
 		ask http://localhost:3000/tls-check
 	}
